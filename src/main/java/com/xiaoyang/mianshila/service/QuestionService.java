@@ -8,6 +8,7 @@ import com.xiaoyang.mianshila.model.entity.Question;
 import com.xiaoyang.mianshila.model.vo.QuestionVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
  * 题目服务
@@ -66,4 +67,5 @@ public interface QuestionService extends IService<Question> {
      */
     Page<Question> searchFromEs(QuestionQueryRequest questionQueryRequest);
 
+    void batchDeleteQuestions(List<Long> questionIdList);
 }
