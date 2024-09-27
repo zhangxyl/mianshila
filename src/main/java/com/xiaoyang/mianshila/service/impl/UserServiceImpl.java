@@ -2,6 +2,7 @@ package com.xiaoyang.mianshila.service.impl;
 
 import static com.xiaoyang.mianshila.constant.UserConstant.USER_LOGIN_STATE;
 
+import cn.dev33.satoken.stp.StpUtil;
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -13,6 +14,7 @@ import com.xiaoyang.mianshila.model.entity.User;
 import com.xiaoyang.mianshila.model.enums.UserRoleEnum;
 import com.xiaoyang.mianshila.model.vo.LoginUserVO;
 import com.xiaoyang.mianshila.model.vo.UserVO;
+import com.xiaoyang.mianshila.satoken.DeviceUtils;
 import com.xiaoyang.mianshila.service.UserService;
 import com.xiaoyang.mianshila.utils.SqlUtils;
 import com.xiaoyang.mianshila.constant.CommonConstant;
@@ -114,7 +116,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在或密码错误");
         }
         // 3. 记录用户的登录态
-        request.getSession().setAttribute(USER_LOGIN_STATE, user);
+        //request.getSession().setAttribute(USER_LOGIN_STATE, user);
+
+        // Sa-Token 登录，并指定设备，同端登录互斥
+        StpUtil.login(user.getId(), DeviceUtils.getRequestDevice(request));
+        StpUtil.getSession().set(USER_LOGIN_STATE, user);
+
         return this.getLoginUserVO(user);
     }
 
@@ -157,7 +164,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @return
      */
     @Override
-    public User getLoginUser(HttpServletRequest request) {
+    public User getLoginUserOld(HttpServletRequest request) {
         // 先判断是否已登录
         Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
         User currentUser = (User) userObj;
@@ -172,6 +179,18 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
         return currentUser;
     }
+
+    @Override
+    public User getLoginUser(HttpServletRequest request) {
+        // 先判断是否已登录
+        Object loginId = StpUtil.getLoginIdDefaultNull();
+        if (Objects.isNull(loginId)) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR);
+        }
+        return (User) StpUtil.getSessionByLoginId(loginId).get(USER_LOGIN_STATE);
+    }
+
+
 
     /**
      * 获取当前登录用户（允许未登录）
@@ -217,7 +236,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * @param request
      */
     @Override
-    public boolean userLogout(HttpServletRequest request) {
+    public boolean userLogoutOld(HttpServletRequest request) {
         if (request.getSession().getAttribute(USER_LOGIN_STATE) == null) {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "未登录");
         }
@@ -225,6 +244,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         request.getSession().removeAttribute(USER_LOGIN_STATE);
         return true;
     }
+
+    @Override
+    public boolean userLogout(HttpServletRequest request) {
+        StpUtil.checkLogin();
+        // 移除登录态
+        StpUtil.logout();
+        return true;
+    }
+
 
     @Override
     public LoginUserVO getLoginUserVO(User user) {

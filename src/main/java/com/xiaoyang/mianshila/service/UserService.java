@@ -58,6 +58,14 @@ public interface UserService extends IService<User> {
      * @param request
      * @return
      */
+    User getLoginUserOld(HttpServletRequest request);
+
+    /**
+     * 获取当前登录用户
+     *
+     * @param request
+     * @return
+     */
     User getLoginUser(HttpServletRequest request);
 
     /**
@@ -83,6 +91,14 @@ public interface UserService extends IService<User> {
      * @return
      */
     boolean isAdmin(User user);
+
+    /**
+     * 用户注销
+     *
+     * @param request
+     * @return
+     */
+    boolean userLogoutOld(HttpServletRequest request);
 
     /**
      * 用户注销
